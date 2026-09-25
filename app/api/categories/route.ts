@@ -19,7 +19,7 @@ export async function GET() {
     return NextResponse.json(categories);
   } catch (error: any) {
     console.error("Categories GET Error:", error);
-    return NextResponse.json({ error: "Failed to fetch categories." }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Failed to fetch categories." }, { status: 500 });
   }
 }
 
@@ -43,11 +43,11 @@ export async function POST(req: Request) {
     return NextResponse.json(category, { status: 201 });
   } catch (error: any) {
     console.error("Categories POST Error:", error);
-    return NextResponse.json({ error: "Failed to create category." }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Failed to create category." }, { status: 500 });
   }
 }
 
-// PUT: Update category
+// PUT: Update category or batch reorder
 export async function PUT(req: Request) {
   try {
     const { user } = await getSessionUser();
@@ -58,14 +58,22 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Forbidden. Category management is restricted to super admin." }, { status: 403 });
     }
 
-    const { id, name, parent_id, img, sort_order } = await req.json();
+    const body = await req.json();
+
+    // Batch Reorder & Re-parenting support (for Drag and Drop feature)
+    if (body.action === "reorder" && Array.isArray(body.items)) {
+      const updatedList = await Categories.batchReorder(body.items);
+      return NextResponse.json(updatedList);
+    }
+
+    const { id, name, parent_id, img, sort_order } = body;
     if (!id) return NextResponse.json({ error: "Category ID is required." }, { status: 400 });
 
     const updated = await Categories.update(id, { name, parent_id, img, sort_order });
     return NextResponse.json(updated);
   } catch (error: any) {
     console.error("Categories PUT Error:", error);
-    return NextResponse.json({ error: "Failed to update category." }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Failed to update category." }, { status: 500 });
   }
 }
 
@@ -80,13 +88,22 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "Forbidden. Category management is restricted to super admin." }, { status: 403 });
     }
 
-    const { id } = await req.json();
+    // Support both query param (?id=xxx) and JSON body ({ id: "xxx" })
+    const url = new URL(req.url);
+    let id = url.searchParams.get("id");
+    if (!id) {
+      try {
+        const body = await req.json();
+        id = body?.id;
+      } catch {}
+    }
+
     if (!id) return NextResponse.json({ error: "Category ID is required." }, { status: 400 });
 
     await Categories.delete(id);
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("Categories DELETE Error:", error);
-    return NextResponse.json({ error: "Failed to delete category." }, { status: 500 });
+    return NextResponse.json({ error: error.message || "Failed to delete category." }, { status: 500 });
   }
 }

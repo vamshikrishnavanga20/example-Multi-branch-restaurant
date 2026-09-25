@@ -11,10 +11,11 @@ import {
   AdminGetUserCommand,
   AuthFlowType,
 } from "@aws-sdk/client-cognito-identity-provider";
+import { AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY } from "./config";
 
-const region = process.env.AWS_REGION || "ap-south-2";
-const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
-const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+const region = AWS_REGION;
+const accessKeyId = AWS_ACCESS_KEY_ID;
+const secretAccessKey = AWS_SECRET_ACCESS_KEY;
 const userPoolId = process.env.COGNITO_USER_POOL_ID;
 const clientId = process.env.COGNITO_CLIENT_ID;
 

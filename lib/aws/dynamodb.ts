@@ -22,15 +22,16 @@ import {
   ScanCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { TableStatus } from "@/types";
+import { AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, DYNAMODB_TABLE_NAME } from "./config";
 
 // ---------------------------------------------------------------------------
 // Client Configuration
 // ---------------------------------------------------------------------------
 const client = new DynamoDBClient({
-  region: process.env.AWS_REGION || "ap-south-1",
+  region: AWS_REGION,
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
+    accessKeyId: AWS_ACCESS_KEY_ID,
+    secretAccessKey: AWS_SECRET_ACCESS_KEY,
   },
 });
 
@@ -38,7 +39,7 @@ export const docClient = DynamoDBDocumentClient.from(client, {
   marshallOptions: { removeUndefinedValues: true },
 });
 
-const TABLE = process.env.DYNAMODB_TABLE_NAME || "ManohaaHotel";
+const TABLE = DYNAMODB_TABLE_NAME;
 
 // ---------------------------------------------------------------------------
 // Helper: Generate UUID
@@ -296,14 +297,19 @@ export const Categories = {
         ExpressionAttributeValues: { ":pk": "CAT" },
       })
     );
-    return (result.Items || []).map(toCategoryShape).sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    );
+    return (result.Items || []).map(toCategoryShape).sort((a, b) => {
+      const orderA = a.sort_order ?? 9999;
+      const orderB = b.sort_order ?? 9999;
+      if (orderA !== orderB) return orderA - orderB;
+      return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+    });
   },
 
   async get(id: string) {
+    if (!id) return null;
+    const cleanId = id.startsWith("CAT#") ? id.replace("CAT#", "") : id;
     const result = await docClient.send(
-      new GetCommand({ TableName: TABLE, Key: { PK: "CAT", SK: `CAT#${id}` } })
+      new GetCommand({ TableName: TABLE, Key: { PK: "CAT", SK: `CAT#${cleanId}` } })
     );
     return result.Item ? toCategoryShape(result.Item) : null;
   },
@@ -317,54 +323,125 @@ export const Categories = {
       name: data.name,
       parent_id: data.parent_id || null,
       img: data.img || null,
-      sort_order: data.sort_order ?? null,
+      sort_order: data.sort_order ?? 1,
       created_at: isoNow(),
+      updated_at: isoNow(),
     };
     await docClient.send(new PutCommand({ TableName: TABLE, Item: item }));
     return toCategoryShape(item);
   },
 
   async update(id: string, data: { name?: string; parent_id?: string | null; img?: string | null; sort_order?: number | null }) {
-    const expressions: string[] = [];
-    const names: Record<string, string> = {};
-    const values: Record<string, any> = {};
+    const cleanId = id.startsWith("CAT#") ? id.replace("CAT#", "") : id;
+    
+    // Check if item exists to handle resilient upsert
+    const existing = await this.get(cleanId);
 
-    for (const [key, val] of Object.entries(data)) {
-      if (val === undefined) continue;
-      names[`#${key}`] = key;
-      expressions.push(`#${key} = :${key}`);
-      values[`:${key}`] = val;
+    const setExpressions: string[] = ["#id = :id", "#updated_at = :updated_at"];
+    const removeExpressions: string[] = [];
+    const names: Record<string, string> = {
+      "#id": "id",
+      "#updated_at": "updated_at",
+    };
+    const values: Record<string, any> = {
+      ":id": cleanId,
+      ":updated_at": isoNow(),
+    };
+
+    if (!existing) {
+      names["#created_at"] = "created_at";
+      setExpressions.push("#created_at = :created_at");
+      values[":created_at"] = isoNow();
     }
 
-    if (expressions.length === 0) return;
+    if (data.name !== undefined) {
+      names["#name"] = "name";
+      setExpressions.push("#name = :name");
+      values[":name"] = data.name;
+    }
+
+    if (data.parent_id !== undefined) {
+      if (data.parent_id === null || data.parent_id === "" || data.parent_id === "null") {
+        names["#parent_id"] = "parent_id";
+        removeExpressions.push("#parent_id");
+      } else {
+        names["#parent_id"] = "parent_id";
+        setExpressions.push("#parent_id = :parent_id");
+        values[":parent_id"] = data.parent_id;
+      }
+    }
+
+    if (data.img !== undefined) {
+      if (data.img === null || data.img === "") {
+        names["#img"] = "img";
+        removeExpressions.push("#img");
+      } else {
+        names["#img"] = "img";
+        setExpressions.push("#img = :img");
+        values[":img"] = data.img;
+      }
+    }
+
+    if (data.sort_order !== undefined) {
+      if (data.sort_order === null) {
+        names["#sort_order"] = "sort_order";
+        removeExpressions.push("#sort_order");
+      } else {
+        names["#sort_order"] = "sort_order";
+        setExpressions.push("#sort_order = :sort_order");
+        values[":sort_order"] = Number(data.sort_order);
+      }
+    }
+
+    let updateExpression = "";
+    if (setExpressions.length > 0) {
+      updateExpression += `SET ${setExpressions.join(", ")}`;
+    }
+    if (removeExpressions.length > 0) {
+      if (updateExpression) updateExpression += " ";
+      updateExpression += `REMOVE ${removeExpressions.join(", ")}`;
+    }
 
     const result = await docClient.send(
       new UpdateCommand({
         TableName: TABLE,
-        Key: { PK: "CAT", SK: `CAT#${id}` },
-        UpdateExpression: `SET ${expressions.join(", ")}`,
+        Key: { PK: "CAT", SK: `CAT#${cleanId}` },
+        UpdateExpression: updateExpression,
         ExpressionAttributeNames: Object.keys(names).length ? names : undefined,
-        ExpressionAttributeValues: values,
+        ExpressionAttributeValues: Object.keys(values).length ? values : undefined,
         ReturnValues: "ALL_NEW",
       })
     );
     return result.Attributes ? toCategoryShape(result.Attributes) : null;
   },
 
+  async batchReorder(items: { id: string; sort_order: number; parent_id?: string | null }[]) {
+    // Process reordering updates in parallel
+    const updates = items.map((item) =>
+      this.update(item.id, {
+        sort_order: item.sort_order,
+        ...(item.parent_id !== undefined ? { parent_id: item.parent_id } : {}),
+      })
+    );
+    await Promise.all(updates);
+    return this.list();
+  },
+
   async delete(id: string) {
+    const cleanId = id.startsWith("CAT#") ? id.replace("CAT#", "") : id;
     await docClient.send(
-      new DeleteCommand({ TableName: TABLE, Key: { PK: "CAT", SK: `CAT#${id}` } })
+      new DeleteCommand({ TableName: TABLE, Key: { PK: "CAT", SK: `CAT#${cleanId}` } })
     );
   },
 };
 
 function toCategoryShape(item: Record<string, any>) {
   return {
-    id: item.id,
-    name: item.name,
+    id: item.id || (typeof item.SK === "string" ? item.SK.replace("CAT#", "") : ""),
+    name: item.name || "",
     parent_id: item.parent_id || null,
     img: item.img || null,
-    sort_order: item.sort_order ?? null,
+    sort_order: item.sort_order != null ? Number(item.sort_order) : null,
     created_at: item.created_at || "",
   };
 }

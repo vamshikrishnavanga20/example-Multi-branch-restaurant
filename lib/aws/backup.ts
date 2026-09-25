@@ -14,17 +14,18 @@
 
 import { S3Client, PutObjectCommand, HeadObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { Orders, Attendance, Branches, MenuItems } from "./dynamodb";
+import { AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, BACKUP_S3_BUCKET_NAME as CONFIG_BACKUP_BUCKET } from "./config";
 
-const region = process.env.AWS_REGION || "ap-south-2";
+const region = AWS_REGION;
 const s3Client = new S3Client({
   region,
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
+    accessKeyId: AWS_ACCESS_KEY_ID,
+    secretAccessKey: AWS_SECRET_ACCESS_KEY,
   },
 });
 
-export const BACKUP_BUCKET_NAME = process.env.BACKUP_S3_BUCKET_NAME || "manohaa-hotel-backups";
+export const BACKUP_BUCKET_NAME = CONFIG_BACKUP_BUCKET;
 
 export interface WeekRange {
   weekString: string; // e.g. "2026-W38"
