@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-primary: #09090b;
+    --bg-surface: #121216;
+    --bg-card: rgba(255, 255, 255, 0.03);
+    --border-card: rgba(255, 255, 255, 0.08);
+    --border-subtle: rgba(255, 255, 255, 0.05);
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.6);
+    --text-muted: rgba(255, 255, 255, 0.4);
+    --accent: #d4af37;
+    --accent-glow: rgba(212, 175, 55, 0.2);
+    --sidebar-bg: #09090b;
+    --header-bg: rgba(9, 9, 11, 0.8);
+  }
+
+  [data-theme="light"] {
+    --bg-primary: #f8fafc;
+    --bg-surface: #ffffff;
+    --bg-card: #ffffff;
+    --border-card: #e2e8f0;
+    --border-subtle: #f1f5f9;
+    --text-primary: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
+    --accent: #b45309;
+    --accent-glow: rgba(180, 83, 9, 0.15);
+    --sidebar-bg: #ffffff;
+    --header-bg: rgba(255, 255, 255, 0.95);
+    --input-bg: #f8fafc;
+  }
+
+  [data-palette="sapphire"] {
+    --accent: #38bdf8;
+    --accent-glow: rgba(56, 189, 248, 0.2);
+  }
+
+  [data-palette="emerald"] {
+    --accent: #10b981;
+    --accent-glow: rgba(16, 185, 129, 0.2);
+  }
+
+  [data-palette="amethyst"] {
+    --accent: #a855f7;
+    --accent-glow: rgba(168, 85, 247, 0.2);
+  }
+
+  [data-palette="ivory"] {
+    --accent: #d4af37;
+    --accent-glow: rgba(212, 175, 55, 0.2);
+  }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+}
+
+/* Hide scrollbar for clean horizontal tabs */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Custom smooth luxury vertical scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+[data-theme="light"] .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}
+[data-theme="light"] .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}

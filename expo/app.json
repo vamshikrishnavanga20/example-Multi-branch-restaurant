@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "Example Project",
+    "slug": "example-project",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#09090B",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/75783f10-c663-4f3a-af66-b6ed6af2741d",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#09090B",
+        "foregroundImage": "./assets/adaptive-icon.png"
+      },
+      "usesCleartextTraffic": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.exampleproject.pos",
+      "permissions": [
+        "POST_NOTIFICATIONS",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "75783f10-c663-4f3a-af66-b6ed6af2741d"
+      }
+    },
+    "owner": "vamshi_77",
+    "plugins": [
+      "expo-sqlite",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/adaptive-icon.png",
+          "color": "#D4AF37"
+        }
+      ],
+      "expo-font"
+    ]
+  }
+}
