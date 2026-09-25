@@ -2,16 +2,8 @@
 import { Platform } from 'react-native';
 import { BranchStorage, ActiveBranch } from '../lib/branchStorage';
 
-// NOTE: Replace this IP with your computer's local Wi-Fi IPv4 address (run `ipconfig` in cmd)
-const DEV_MACHINE_IP = "192.168.29.89"; // <-- UPDATE TO YOUR IP
-
 export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_BASE_URL ||
-  (__DEV__
-    ? Platform.OS === 'android'
-      ? `http://${DEV_MACHINE_IP}:3000`
-      : `http://${DEV_MACHINE_IP}:3000`
-    : "https://your-production-domain.com");
+  process.env.EXPO_PUBLIC_API_BASE_URL || "https://example-multi-branch-restaurant.vercel.app";
 
 // ── 0. Franchise Branches ─────────────────────────────────────────────────────
 

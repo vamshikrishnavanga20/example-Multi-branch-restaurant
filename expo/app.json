@@ -27,6 +27,8 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.exampleproject.pos",
       "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
         "POST_NOTIFICATIONS",
         "VIBRATE",
         "RECEIVE_BOOT_COMPLETED"
