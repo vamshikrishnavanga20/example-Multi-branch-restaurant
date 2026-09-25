@@ -251,14 +251,23 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "order_id and status are required." }, { status: 400 });
     }
 
-    await (Orders as any).updateOrderStatus(order_id, status);
+    const updateRes = await (Orders as any).updateOrderStatus(order_id, status);
 
     RealtimeEvents.emit({
       type: "order_updated",
-      data: { order_id, status },
+      data: {
+        order_id,
+        status,
+        matched_order_ids: updateRes?.matched_order_ids || [order_id],
+      },
     });
 
-    return NextResponse.json({ success: true, order_id, status });
+    return NextResponse.json({
+      success: true,
+      order_id,
+      status,
+      details: updateRes,
+    });
   } catch (error: any) {
     console.error("Orders PUT Error:", error);
     return NextResponse.json({ error: "Failed to update order status." }, { status: 500 });

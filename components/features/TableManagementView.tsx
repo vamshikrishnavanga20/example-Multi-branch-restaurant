@@ -145,7 +145,7 @@ export default function TableManagementView({
     if (!ledger || ledger.length === 0) return map;
 
     ledger.forEach((entry) => {
-      if (!entry.table_number) return;
+      if (!entry.table_number || entry.status === 'cancelled') return;
       const raw = entry.table_number.split('|')[0].trim().toUpperCase();
       const current = map.get(raw) || 0;
       map.set(raw, current + (entry.total_price || 0));

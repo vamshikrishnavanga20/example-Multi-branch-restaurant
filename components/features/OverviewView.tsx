@@ -99,6 +99,7 @@ export default function OverviewView({
 
     return safeLedger.filter((entry: any) => {
       if (!entry?.created_at) return false;
+      if (entry.status === 'cancelled') return false; // Strictly exclude cancelled orders from active business revenue
 
       // Scoped branch filter
       if (selectedBranch && selectedBranch !== "ALL") {
@@ -127,6 +128,7 @@ export default function OverviewView({
 
     return safeLedger.filter((entry: any) => {
       if (!entry?.created_at) return false;
+      if (entry.status === 'cancelled') return false; // Exclude cancelled orders from baseline comparisons
 
       // Scoped branch filter
       if (selectedBranch && selectedBranch !== "ALL") {
@@ -169,7 +171,7 @@ export default function OverviewView({
     });
     if (!map["branch-hyderabad-hq"]) map["branch-hyderabad-hq"] = {};
 
-    const activeLedger = ledger || [];
+    const activeLedger = (ledger || []).filter((entry: any) => entry.status !== 'cancelled');
     activeLedger.forEach((entry: any) => {
       const bId = entry.branch_id || "branch-hyderabad-hq";
       if (!map[bId]) map[bId] = {};
@@ -222,6 +224,7 @@ export default function OverviewView({
     // Temporal Filter
     const timeFiltered = safeLedger.filter((entry: any) => {
       if (!entry?.created_at) return false;
+      if (entry.status === 'cancelled') return false; // Exclude cancelled orders from franchise revenue
       const t = new Date(entry.created_at).getTime();
       if (timeframe === 'today') return t >= startOfToday;
       if (timeframe === '7d') return t >= now.getTime() - (7 * 86400000);
@@ -356,35 +359,36 @@ export default function OverviewView({
   }, [branchRevenueSummary, financialMode]);
 
   // 3. Current & Prior Period KPI Computations
-  // 3. Current & Prior Period KPI Computations
   const kpis = useMemo(() => {
-    const uniqueOrders = new Set(filteredLedger.map((c: any) => c.order_id || c.client_order_id || c.id)).size;
+    const valid = filteredLedger.filter((c: any) => c.status !== 'cancelled');
+    const uniqueOrders = new Set(valid.map((c: any) => c.order_id || c.client_order_id || c.id)).size;
     return {
-      gross: filteredLedger.reduce((acc: number, c: any) => acc + Number(c.total_price ?? c.total_amount ?? 0), 0),
-      net: filteredLedger.reduce((acc: number, c: any) => acc + Number(c.net_profit ?? c.total_price ?? c.total_amount ?? 0), 0),
-      volume: filteredLedger.reduce((acc: number, c: any) => {
+      gross: valid.reduce((acc: number, c: any) => acc + Number(c.total_price ?? c.total_amount ?? 0), 0),
+      net: valid.reduce((acc: number, c: any) => acc + Number(c.net_profit ?? c.total_price ?? c.total_amount ?? 0), 0),
+      volume: valid.reduce((acc: number, c: any) => {
         if (c.quantity !== undefined && c.quantity !== null && !Array.isArray(c.items)) return acc + Number(c.quantity);
         if (Array.isArray(c.items) && c.items.length > 0) {
           return acc + c.items.reduce((s: number, i: any) => s + Number(i.quantity || 1), 0);
         }
         return acc + Number(c.quantity || 1);
       }, 0),
-      orders: uniqueOrders > 0 ? uniqueOrders : filteredLedger.length
+      orders: uniqueOrders > 0 ? uniqueOrders : valid.length
     };
   }, [filteredLedger]);
 
   const priorKpis = useMemo(() => {
-    const uniqueOrders = new Set(priorLedger.map((c: any) => c.order_id || c.client_order_id || c.id)).size;
-    const gross = priorLedger.reduce((acc: number, c: any) => acc + Number(c.total_price ?? c.total_amount ?? 0), 0);
-    const net = priorLedger.reduce((acc: number, c: any) => acc + Number(c.net_profit ?? c.total_price ?? c.total_amount ?? 0), 0);
-    const volume = priorLedger.reduce((acc: number, c: any) => {
+    const valid = priorLedger.filter((c: any) => c.status !== 'cancelled');
+    const uniqueOrders = new Set(valid.map((c: any) => c.order_id || c.client_order_id || c.id)).size;
+    const gross = valid.reduce((acc: number, c: any) => acc + Number(c.total_price ?? c.total_amount ?? 0), 0);
+    const net = valid.reduce((acc: number, c: any) => acc + Number(c.net_profit ?? c.total_price ?? c.total_amount ?? 0), 0);
+    const volume = valid.reduce((acc: number, c: any) => {
       if (c.quantity !== undefined && c.quantity !== null && !Array.isArray(c.items)) return acc + Number(c.quantity);
       if (Array.isArray(c.items) && c.items.length > 0) {
         return acc + c.items.reduce((s: number, i: any) => s + Number(i.quantity || 1), 0);
       }
       return acc + Number(c.quantity || 1);
     }, 0);
-    const orders = uniqueOrders > 0 ? uniqueOrders : priorLedger.length;
+    const orders = uniqueOrders > 0 ? uniqueOrders : valid.length;
     const metric = financialMode === 'gross' ? gross : net;
     const avgTicket = orders > 0 ? Math.round(metric / orders) : 0;
     return { gross, net, volume, orders, metric, avgTicket };

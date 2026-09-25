@@ -69,6 +69,7 @@ export default function BranchesView({
     }
 
     ledger.forEach((entry: any) => {
+      if (entry.status === 'cancelled') return;
       const bId = entry.branch_id || "branch-hyderabad-hq";
       if (!stats[bId]) {
         stats[bId] = { revenue: 0, orders: new Set(), items: 0 };
@@ -85,7 +86,9 @@ export default function BranchesView({
 
   // Overall enterprise totals
   const totalNetworkRevenue = useMemo(() => {
-    return ledger.reduce((acc, c: any) => acc + Number(c.total_price ?? c.total_amount ?? 0), 0);
+    return ledger
+      .filter((c: any) => c.status !== 'cancelled')
+      .reduce((acc, c: any) => acc + Number(c.total_price ?? c.total_amount ?? 0), 0);
   }, [ledger]);
 
   const totalRoyaltyEstimated = useMemo(() => {

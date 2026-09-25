@@ -815,16 +815,49 @@ export const Orders = {
 
   async updateOrderStatus(orderId: string, status: string) {
     try {
-      const ordersResult = await docClient.send(
-        new QueryCommand({
-          TableName: TABLE,
-          KeyConditionExpression: 'PK = :pk',
-          FilterExpression: 'id = :id OR client_order_id = :id',
-          ExpressionAttributeValues: { ':pk': 'ORDER', ':id': orderId },
-          Limit: 50,
-        })
-      );
-      for (const order of (ordersResult.Items || [])) {
+      const cleanId = orderId ? orderId.replace(/^#/, '').trim() : '';
+      const hashId = cleanId ? `#${cleanId}` : '';
+      const candidateIds = new Set<string>([orderId, cleanId, hashId].filter(Boolean));
+
+      // 1. Find the target order(s) by querying recent orders descending
+      let matchedOrders: any[] = [];
+      let orderLastKey: any;
+      let orderPages = 0;
+      do {
+        const ordersResult = await docClient.send(
+          new QueryCommand({
+            TableName: TABLE,
+            KeyConditionExpression: 'PK = :pk',
+            ScanIndexForward: false, // Descending: newest orders first!
+            ExclusiveStartKey: orderLastKey,
+            Limit: 200,
+          })
+        );
+        for (const order of (ordersResult.Items || [])) {
+          const oId = order.id ? String(order.id).trim() : '';
+          const oCleanId = oId.replace(/^#/, '');
+          const oClient = order.client_order_id ? String(order.client_order_id).trim() : '';
+          const oClientClean = oClient.replace(/^#/, '');
+
+          if (
+            candidateIds.has(oId) ||
+            candidateIds.has(oCleanId) ||
+            candidateIds.has(oClient) ||
+            candidateIds.has(oClientClean)
+          ) {
+            matchedOrders.push(order);
+            if (oId) candidateIds.add(oId);
+            if (oCleanId) candidateIds.add(oCleanId);
+            if (oClient) candidateIds.add(oClient);
+            if (oClientClean) candidateIds.add(oClientClean);
+          }
+        }
+        orderLastKey = ordersResult.LastEvaluatedKey;
+        orderPages++;
+      } while (orderLastKey && matchedOrders.length === 0 && orderPages < 10);
+
+      // Update matched orders
+      for (const order of matchedOrders) {
         await docClient.send(
           new UpdateCommand({
             TableName: TABLE,
@@ -834,17 +867,67 @@ export const Orders = {
             ExpressionAttributeValues: { ':s': status },
           })
         );
+
+        // If cancelled, release associated table back to 'vacant'
+        if (status === 'cancelled' && order.table_number) {
+          try {
+            const rawTable = order.table_number.split('|')[0].trim();
+            const branchId = order.branch_id || DEFAULT_BRANCH.id;
+            const branchTables = await Tables.listByBranch(branchId);
+            const matchedTable = branchTables.find(
+              (t) => t.table_number.toLowerCase() === rawTable.toLowerCase() ||
+                     rawTable.toLowerCase().startsWith(t.table_number.toLowerCase())
+            );
+            if (matchedTable) {
+              await Tables.updateStatus(matchedTable.id, branchId, 'vacant', {
+                active_order_id: null,
+              });
+            }
+          } catch (tableErr) {
+            console.warn('Table auto-release on cancel warning:', tableErr);
+          }
+        }
       }
-      const ledgerResult = await docClient.send(
-        new QueryCommand({
-          TableName: TABLE,
-          KeyConditionExpression: 'PK = :pk',
-          FilterExpression: 'order_id = :id',
-          ExpressionAttributeValues: { ':pk': 'LEDGER', ':id': orderId },
-          Limit: 100,
-        })
-      );
-      for (const item of (ledgerResult.Items || [])) {
+
+      // 2. Find and update all corresponding LEDGER entries (descending)
+      let matchedLedgerItems: any[] = [];
+      let ledgerLastKey: any;
+      let ledgerPages = 0;
+      do {
+        const ledgerResult = await docClient.send(
+          new QueryCommand({
+            TableName: TABLE,
+            KeyConditionExpression: 'PK = :pk',
+            ScanIndexForward: false, // Descending: newest items first!
+            ExclusiveStartKey: ledgerLastKey,
+            Limit: 300,
+          })
+        );
+        for (const item of (ledgerResult.Items || [])) {
+          const itemOrderId = item.order_id ? String(item.order_id).trim() : '';
+          const itemOrderIdClean = itemOrderId.replace(/^#/, '');
+          const itemClientOrderId = item.client_order_id ? String(item.client_order_id).trim() : '';
+          const itemClientClean = itemClientOrderId.replace(/^#/, '');
+          const itemId = item.id ? String(item.id).trim() : '';
+          const itemIdClean = itemId.replace(/^#/, '');
+
+          if (
+            candidateIds.has(itemOrderId) ||
+            candidateIds.has(itemOrderIdClean) ||
+            candidateIds.has(itemClientOrderId) ||
+            candidateIds.has(itemClientClean) ||
+            candidateIds.has(itemId) ||
+            candidateIds.has(itemIdClean)
+          ) {
+            matchedLedgerItems.push(item);
+          }
+        }
+        ledgerLastKey = ledgerResult.LastEvaluatedKey;
+        ledgerPages++;
+      } while (ledgerLastKey && matchedLedgerItems.length === 0 && ledgerPages < 10);
+
+      // Update all matched ledger entries
+      for (const item of matchedLedgerItems) {
         await docClient.send(
           new UpdateCommand({
             TableName: TABLE,
@@ -855,10 +938,18 @@ export const Orders = {
           })
         );
       }
-      return { success: true, order_id: orderId, status };
+
+      return {
+        success: true,
+        order_id: orderId,
+        status,
+        matched_order_ids: Array.from(candidateIds),
+        orders_updated: matchedOrders.length,
+        ledger_entries_updated: matchedLedgerItems.length,
+      };
     } catch (err) {
       console.warn('updateOrderStatus error:', err);
-      return { success: false, order_id: orderId, status };
+      return { success: false, order_id: orderId, status, error: String(err) };
     }
   },
 };

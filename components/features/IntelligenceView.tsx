@@ -85,7 +85,7 @@ export default function IntelligenceView({ dishes = [], ledger = [] }: Intellige
     const endMs = rangeEnd.getTime();
 
     return ledger.filter((entry: any) => {
-      if (!entry.created_at) return false;
+      if (!entry.created_at || entry.status === 'cancelled') return false;
       const t = new Date(entry.created_at).getTime();
       return Number.isFinite(t) && t >= startMs && t <= endMs;
     });

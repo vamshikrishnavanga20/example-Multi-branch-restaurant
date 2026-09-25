@@ -200,15 +200,38 @@ export default function AdminCommandCenter() {
         const payload = JSON.parse(e.data);
         const targetOrderId = payload.order_id || (payload.data && payload.data.order_id);
         const targetStatus = payload.status || (payload.data && payload.data.status);
+        const matchedIds: string[] = payload.matched_order_ids || (payload.data && payload.data.matched_order_ids) || [];
+
         if (targetOrderId && targetStatus) {
+          const cleanTarget = String(targetOrderId).replace(/^#/, '').toLowerCase().trim();
+          const targetSet = new Set<string>([
+            cleanTarget,
+            String(targetOrderId).toLowerCase().trim(),
+            ...matchedIds.map((id: string) => String(id).replace(/^#/, '').toLowerCase().trim()),
+            ...matchedIds.map((id: string) => String(id).toLowerCase().trim()),
+          ].filter(Boolean));
+
           setLedger((prev) =>
-            prev.map((entry) =>
-              entry.order_id === targetOrderId ? { ...entry, status: targetStatus } : entry
-            )
+            prev.map((entry) => {
+              const entryOrder = (entry.order_id || '').replace(/^#/, '').toLowerCase().trim();
+              const entryClient = ((entry as any).client_order_id || '').replace(/^#/, '').toLowerCase().trim();
+              const entryId = (entry.id || '').replace(/^#/, '').toLowerCase().trim();
+
+              if (
+                targetSet.has(entryOrder) ||
+                targetSet.has(entryClient) ||
+                targetSet.has(entryId)
+              ) {
+                return { ...entry, status: targetStatus };
+              }
+              return entry;
+            })
           );
-          return;
         }
-      } catch {}
+      } catch (err) {
+        console.warn("handleOrderUpdated parse error:", err);
+      }
+      // Always trigger fresh telemetry sync for authoritative numbers across all KPIs
       fetchGlobalTelemetry(true);
     };
 

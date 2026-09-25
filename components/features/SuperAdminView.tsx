@@ -78,8 +78,9 @@ export default function SuperAdminView({
       const branchLedger = ledger.filter(e =>
         (e.branch_id || 'branch-hyderabad-hq') === branch.id
       );
-      const revenue = branchLedger.reduce((s: number, e: any) => s + (e.total_price || 0), 0);
-      const orderIds = new Set(branchLedger.map((e: any) => e.order_id || e.id));
+      const activeBranchLedger = branchLedger.filter(e => e.status !== 'cancelled');
+      const revenue = activeBranchLedger.reduce((s: number, e: any) => s + (e.total_price || 0), 0);
+      const orderIds = new Set(activeBranchLedger.map((e: any) => e.order_id || e.id));
       const orderCount = orderIds.size;
       const avgOrderValue = orderCount > 0 ? revenue / orderCount : 0;
       const isHQ = branch.id === 'branch-hyderabad-hq' || branch.code === 'HYD-01';
@@ -87,11 +88,11 @@ export default function SuperAdminView({
       const royaltyAmount = isHQ ? 0 : revenue * (royaltyPct / 100);
 
       // Simple trend simulation based on order density
-      const recent = branchLedger.filter((e: any) => {
+      const recent = activeBranchLedger.filter((e: any) => {
         const d = new Date(e.created_at);
         return d > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
       });
-      const older = branchLedger.filter((e: any) => {
+      const older = activeBranchLedger.filter((e: any) => {
         const d = new Date(e.created_at);
         const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
         const cutoff2 = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);

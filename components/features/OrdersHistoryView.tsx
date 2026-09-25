@@ -177,8 +177,9 @@ export default function OrdersHistoryView({
           group.items.push(itemDetail);
           group.total_amount += itemDetail.total_price;
           group.total_quantity += itemDetail.quantity;
-          // Upgrade status if pending is present
-          if (entry.status && entry.status === 'pending') group.status = 'pending';
+          // Set cancelled status if present, otherwise pending
+          if (entry.status === 'cancelled') group.status = 'cancelled';
+          else if (entry.status === 'pending' && group.status !== 'cancelled') group.status = 'pending';
           if (!group.raw_table_string && entry.table_number) group.raw_table_string = entry.table_number;
           if (!group.branch_id && entry.branch_id) group.branch_id = entry.branch_id;
           if (!group.branch_name && entry.branch_name) group.branch_name = entry.branch_name;
@@ -238,8 +239,9 @@ export default function OrdersHistoryView({
         const total = e.total_price || 0;
         totalAmount += total;
         totalQty += qty;
-        if (e.status === 'pending') worstStatus = 'pending';
-        else if (e.status === 'in_progress' && worstStatus !== 'pending') worstStatus = 'in_progress';
+        if (e.status === 'cancelled') worstStatus = 'cancelled';
+        else if (e.status === 'pending' && worstStatus !== 'cancelled') worstStatus = 'pending';
+        else if (e.status === 'in_progress' && worstStatus !== 'pending' && worstStatus !== 'cancelled') worstStatus = 'in_progress';
 
         return {
           ledger_id: e.id,
@@ -377,15 +379,17 @@ export default function OrdersHistoryView({
 
   // Aggregate Metrics for currently filtered orders
   const metrics = useMemo(() => {
+    const isCancelledFilter = statusFilter === 'cancelled';
+    const validOrders = isCancelledFilter ? filteredOrders : filteredOrders.filter(o => o.status !== 'cancelled');
     const totalOrders = filteredOrders.length;
-    const totalRevenue = filteredOrders.reduce((sum, o) => sum + o.total_amount, 0);
-    const totalItems = filteredOrders.reduce((sum, o) => sum + o.total_quantity, 0);
-    const avgOrderValue = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
+    const totalRevenue = validOrders.reduce((sum, o) => sum + o.total_amount, 0);
+    const totalItems = validOrders.reduce((sum, o) => sum + o.total_quantity, 0);
+    const avgOrderValue = validOrders.length > 0 ? Math.round(totalRevenue / validOrders.length) : 0;
     const pendingOrders = filteredOrders.filter(o => o.status === 'pending').length;
     const inProgressOrders = filteredOrders.filter(o => o.status === 'in_progress').length;
 
     return { totalOrders, totalRevenue, totalItems, avgOrderValue, pendingOrders, inProgressOrders };
-  }, [filteredOrders]);
+  }, [filteredOrders, statusFilter]);
 
   // Status pill counts (reflecting active branch scope)
   const statusCounts = useMemo(() => {
@@ -491,7 +495,7 @@ export default function OrdersHistoryView({
       toast.success("Order Updated", `Order status changed to ${newStatus.toUpperCase()}`);
     } catch (err: any) {
       console.error("Status Update Failed:", err);
-      toast.error("Update Failed", err.message || "Could not update status in Supabase.");
+      toast.error("Update Failed", err.message || "Could not update status in database.");
     } finally {
       setIsUpdatingStatus(false);
     }

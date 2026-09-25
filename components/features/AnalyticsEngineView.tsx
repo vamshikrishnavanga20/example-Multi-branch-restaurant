@@ -29,6 +29,7 @@ export default function AnalyticsEngineView({ ledger = [], dishes = [] }: { ledg
   const filtered = useMemo(() => {
     const now = new Date().getTime();
     return ledger.filter(item => {
+      if (item.status === 'cancelled') return false;
       const itemTime = new Date(item.created_at).getTime();
       if (timeframe === 'today') return itemTime >= new Date().setHours(0, 0, 0, 0);
       if (timeframe === '7d') return itemTime >= now - 7 * 86400000;
