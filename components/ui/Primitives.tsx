@@ -1,6 +1,9 @@
 import { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { useTheme } from "@/lib/theme-context";
+import Odometer from "@/components/ui/Odometer";
+
+export { Odometer };
 
 export const inputCls = "w-full rounded-2xl border border-[var(--border-card)] bg-[var(--input-bg)] px-4 py-3 font-sans text-sm text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--accent)]";
 
@@ -132,7 +135,9 @@ export function StatCard({
               <Icon className="h-4 w-4" />
             </div>
           </div>
-          <p className="font-serif text-3xl font-bold text-[var(--text-primary)] tracking-tight tabular-nums">{value}</p>
+          <p className="font-serif text-3xl font-bold text-[var(--text-primary)] tracking-tight tabular-nums">
+            <Odometer value={value} />
+          </p>
         </div>
 
         <div className="mt-4 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-between gap-2">

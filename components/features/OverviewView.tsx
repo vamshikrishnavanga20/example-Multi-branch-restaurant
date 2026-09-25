@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { Dish } from "@/types";
 import { inr, CHART_COLORS } from "@/lib/utils";
-import { Glass, StatCard, PageHead } from "@/components/ui/Primitives";
+import { Glass, StatCard, PageHead, Odometer } from "@/components/ui/Primitives";
 import { useTheme } from "@/lib/theme-context";
 
 type TimeframeOption = 'today' | '7d' | '30d' | 'custom';
@@ -845,13 +845,12 @@ export default function OverviewView({
                       : isLight ? 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100' : 'bg-white/5 text-white/70 border-white/10 hover:text-white'
                   }`}
                 >
-                  🌐 Combined Network ({inr(financialMode === 'gross' ? branchRevenueSummary.combinedGross : branchRevenueSummary.combinedNet)})
+                  🌐 Combined Network (<Odometer value={inr(financialMode === 'gross' ? branchRevenueSummary.combinedGross : branchRevenueSummary.combinedNet)} />)
                 </button>
               </div>
             )}
           </div>
 
-          {/* Network-wide Headline Stats Bar */}
           {/* Network-wide Headline Stats Bar */}
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
             <div className={`p-4 rounded-2xl border ${isLight ? 'bg-amber-50/60 border-amber-200/80' : 'bg-amber-500/10 border-amber-500/20'}`}>
@@ -859,7 +858,7 @@ export default function OverviewView({
                 🌐 Combined Network Revenue
               </span>
               <p className={`text-xl lg:text-2xl font-black font-mono mt-1 ${isLight ? 'text-amber-950' : 'text-amber-300'}`}>
-                {inr(financialMode === 'gross' ? branchRevenueSummary.combinedGross : branchRevenueSummary.combinedNet)}
+                <Odometer value={inr(financialMode === 'gross' ? branchRevenueSummary.combinedGross : branchRevenueSummary.combinedNet)} />
               </p>
               <span className={`text-[10px] ${isLight ? 'text-amber-700' : 'text-amber-400/60'} mt-0.5 block`}>
                 All {branchRevenueSummary.activeBranchCount} locations combined
@@ -871,7 +870,7 @@ export default function OverviewView({
                 🏛️ Owner's HQ Revenue
               </span>
               <p className={`text-xl lg:text-2xl font-black font-mono mt-1 ${isLight ? 'text-emerald-950' : 'text-emerald-300'}`}>
-                {inr(financialMode === 'gross' ? branchRevenueSummary.hqGross : branchRevenueSummary.hqNet)}
+                <Odometer value={inr(financialMode === 'gross' ? branchRevenueSummary.hqGross : branchRevenueSummary.hqNet)} />
               </p>
               <span className={`text-[10px] ${isLight ? 'text-emerald-700' : 'text-emerald-400/60'} mt-0.5 block`}>
                 Hyderabad Highway HQ • {branchRevenueSummary.hqShare}% share
@@ -883,7 +882,7 @@ export default function OverviewView({
                 🛍️ Total Network Orders
               </span>
               <p className={`text-xl lg:text-2xl font-black font-mono mt-1 ${isLight ? 'text-blue-950' : 'text-blue-300'}`}>
-                {branchRevenueSummary.combinedOrders.toLocaleString()}
+                <Odometer value={branchRevenueSummary.combinedOrders.toLocaleString()} />
               </p>
               <span className={`text-[10px] ${isLight ? 'text-blue-700' : 'text-blue-400/60'} mt-0.5 block`}>
                 Across all branch terminals
@@ -895,7 +894,7 @@ export default function OverviewView({
                 📦 Total Items Dispensed
               </span>
               <p className={`text-xl lg:text-2xl font-black font-mono mt-1 ${isLight ? 'text-indigo-950' : 'text-indigo-300'}`}>
-                {branchRevenueSummary.combinedVolume.toLocaleString()}
+                <Odometer value={branchRevenueSummary.combinedVolume.toLocaleString()} />
               </p>
               <span className={`text-[10px] ${isLight ? 'text-indigo-700' : 'text-indigo-400/60'} mt-0.5 block`}>
                 Dishes prepared in kitchens
@@ -907,7 +906,7 @@ export default function OverviewView({
                 🏢 Active Franchises
               </span>
               <p className={`text-xl lg:text-2xl font-black font-mono mt-1 ${isLight ? 'text-purple-950' : 'text-purple-300'}`}>
-                {branchRevenueSummary.activeBranchCount} Outlets
+                <Odometer value={branchRevenueSummary.activeBranchCount} /> Outlets
               </p>
               <span className={`text-[10px] ${isLight ? 'text-purple-700' : 'text-purple-400/60'} mt-0.5 block`}>
                 Operational network status
@@ -969,11 +968,11 @@ export default function OverviewView({
                       {financialMode === 'gross' ? 'Gross Branch Revenue' : 'Net Branch Margin'}
                     </p>
                     <p className={`text-xl font-black font-mono mt-0.5 ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                      {inr(financialMode === 'gross' ? b.grossRevenue : b.netMargin)}
+                      <Odometer value={inr(financialMode === 'gross' ? b.grossRevenue : b.netMargin)} />
                     </p>
                     <div className="flex items-center justify-between text-xs mt-1 text-slate-400 font-mono">
-                      <span>{b.orderCount} orders</span>
-                      <span>{b.itemVolume} items sold</span>
+                      <span><Odometer value={b.orderCount} /> orders</span>
+                      <span><Odometer value={b.itemVolume} /> items sold</span>
                     </div>
                   </div>
 

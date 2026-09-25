@@ -196,7 +196,11 @@ export default function MenuView({
     setSelectedIds(prev => prev.filter(x => x !== id));
     
     try {
-      const res = await fetch(`/api/menu?id=${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/menu?id=${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData.error || "Deletion Failed");

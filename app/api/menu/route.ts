@@ -119,11 +119,20 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "Forbidden. Menu management is restricted to super admin." }, { status: 403 });
     }
 
-    const { id } = await req.json();
+    // Support both query param (?id=xxx) and JSON body ({ id: "xxx" })
+    const url = new URL(req.url);
+    let id = url.searchParams.get("id");
+    if (!id) {
+      try {
+        const body = await req.json();
+        id = body?.id;
+      } catch {}
+    }
+
     if (!id) return NextResponse.json({ error: "Dish ID is required." }, { status: 400 });
 
     await MenuItems.delete(id);
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, id });
   } catch (error: any) {
     console.error("Menu DELETE Error:", error);
     return NextResponse.json({ error: "Failed to delete dish." }, { status: 500 });

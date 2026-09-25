@@ -549,8 +549,9 @@ export const MenuItems = {
   },
 
   async delete(id: string) {
+    const cleanId = id.startsWith("DISH#") ? id.replace("DISH#", "") : id;
     await docClient.send(
-      new DeleteCommand({ TableName: TABLE, Key: { PK: "MENU", SK: `DISH#${id}` } })
+      new DeleteCommand({ TableName: TABLE, Key: { PK: "MENU", SK: `DISH#${cleanId}` } })
     );
   },
 
