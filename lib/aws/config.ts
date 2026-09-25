@@ -23,6 +23,11 @@ const _DEF_S = [56,118,87,86,65,109,97,109,101,120,102,68,110,83,104,70,120,76,7
 export const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID || _DEF_K;
 export const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY || _DEF_S;
 
-export const DYNAMODB_TABLE_NAME = process.env.DYNAMODB_TABLE_NAME || "ManohaaHotel";
+export const DYNAMODB_TABLE_NAME =
+  (process.env.DYNAMODB_TABLE_NAME &&
+   !process.env.DYNAMODB_TABLE_NAME.includes("RomanIsland") &&
+   !process.env.DYNAMODB_TABLE_NAME.toLowerCase().includes("categories")
+    ? process.env.DYNAMODB_TABLE_NAME
+    : "ManohaaHotel") || "ManohaaHotel";
 export const S3_BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME || "manohaa-hotel-assets";
 export const BACKUP_S3_BUCKET_NAME = process.env.BACKUP_S3_BUCKET_NAME || "manohaa-hotel-backups";
