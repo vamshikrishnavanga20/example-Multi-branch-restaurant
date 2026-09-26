@@ -214,10 +214,10 @@ export default function ExampleProjectLanding() {
       </motion.header>
 
       {/* HERO SECTION */}
-      <section className="relative h-screen min-h-[600px] flex flex-col justify-between overflow-hidden bg-black">
+      <section className="relative h-screen min-h-[600px] flex flex-col justify-between overflow-hidden bg-[#09090B]">
         <div className="absolute inset-0 z-0">
-          <img src="/exterior.webp" alt="Example Project" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-black/60" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#121214] via-[#09090B] to-[#09090B]" />
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] bg-[#D4AF37]/10 blur-[140px] rounded-full pointer-events-none" />
           <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[#F2F2F2] via-[#F2F2F2]/80 to-transparent" />
         </div>
         <nav className="relative z-10 w-full pt-16 px-6 flex flex-col items-center justify-center">
